@@ -1,0 +1,12 @@
+data/.openclaw/workspace-*/.*
+data/.openclaw/workspace-*/sessions/
+data/.openclaw/workspace-*/*.jsonl
+data/.openclaw/workspace-*/MEMORY.md
+data/.openclaw/workspace-*/HEARTBEAT.md
+data/.openclaw/agents/*/agent/auth-profiles.json
+data/.openclaw/agents/*/sessions/
+*.jsonl
+*.log
+data/.openclaw/mission-control/
+data/.openclaw/workspace-dev/
+data/.openclaw/workspace-*/

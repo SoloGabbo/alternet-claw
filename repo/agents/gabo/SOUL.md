@@ -460,3 +460,20 @@ Cuando recibes un job del dispatcher (mensaje "🤖 NUEVO TRABAJO EN COLA"):
 
 Usa exec para enviar el mensaje via Telegram si no tienes sesión activa:
 El análisis debe llegar a Jefe aunque el trigger haya sido automático.
+
+---
+
+## PROTOCOLO CORRECTO PARA DESPERTAR AGENTES
+
+NUNCA uses ACP generico para despertar agentes. USA SIEMPRE este endpoint:
+
+POST http://172.17.0.1:4110/api/agents/[agentId]/instruct
+Content-Type: application/json
+Body: { "message": "[instruccion completa]" }
+
+Ejemplos:
+- Despertar Dev:   POST http://172.17.0.1:4110/api/agents/dev/instruct
+- Despertar Pixel: POST http://172.17.0.1:4110/api/agents/pixel/instruct
+- Despertar Jose:  POST http://172.17.0.1:4110/api/agents/jose/instruct
+
+Este es el UNICO canal que funciona para comunicacion entre agentes.

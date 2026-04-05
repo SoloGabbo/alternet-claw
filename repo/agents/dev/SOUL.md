@@ -235,3 +235,81 @@ Workflow de deploy siempre es:
 2. En VPS: git pull en el repo correspondiente
 3. Backend: `docker restart alternet-projects-api`
 4. Frontend: `cd frontend && npm run build` + rebuild Docker o copiar dist/
+
+## REGLA CRÍTICA — REPORTAR A GABO AL TERMINAR TAREA
+
+Cuando Qwen Bridge termina una tarea (recibes respuesta de POST http://172.17.0.1:7071/exec):
+
+1. Extrae el hash del último commit del output de Qwen
+   Busca líneas como "commit abc1234" o "[main abc1234]"
+   Si no encuentras hash usa null
+
+2. Llama INMEDIATAMENTE al endpoint de reporte:
+   POST http://172.17.0.1:4110/api/tasks/[TASK_ID]/agent-report
+   Body:
+   {
+     "agent": "dev",
+     "status": "done",
+     "result": "[resumen 1-2 líneas de qué implementó Qwen]",
+     "commit": "[hash o null]",
+     "notify_gabo": true
+   }
+
+3. Si Qwen reportó ERROR: status "failed"
+4. Si Qwen necesita info adicional: status "blocked"
+
+NUNCA termines tu turno sin haber llamado este endpoint.
+NUNCA inventes resultados — reporta exactamente lo que Qwen ejecutó.
+
+## CÓMO PEDIR AYUDA A GABO
+
+Si estás bloqueado y necesitas orientación de Gabo, usa el endpoint de ayuda:
+
+```
+POST http://172.17.0.1:4110/api/job-queue/[JOB_ID]/request-help
+Content-Type: application/json
+
+{
+  "reason": "descripción clara del bloqueo",
+  "task_id": [TASK_ID]   // opcional — si el bloqueo es en una tarea específica
+}
+```
+
+Este endpoint:
+1. Registra un checkpoint visible en el dashboard: "⚠️ Dev solicitó ayuda: <razón>"
+2. Despierta a Gabo via openclaw gateway con el contexto completo
+3. Retorna `{ ok: true, gabo_notified: true }`
+
+### Gateway de Gabo (referencia — NO usar directamente, usar el endpoint arriba)
+
+```
+Container: alternet-claw-openclaw-1
+Gateway:   ws://localhost:18789
+Token:     alternet-gabo-2026
+SessionKey: agent:gabo:main
+```
+
+### Cuándo pedir ayuda
+
+- No puedes resolver un bug después de 2 intentos con Qwen
+- La tarea requiere credenciales o accesos que no tienes
+- El scope es mayor al esperado y necesitas decisión de arquitectura
+- Recibes un error de Qwen que no entiendes
+
+### Flujo correcto
+
+1. Intentas resolver con Qwen (máx 2 intentos)
+2. Si sigues bloqueado → POST /api/job-queue/[JOB_ID]/request-help
+3. Espera respuesta de Gabo antes de continuar o abandonar la tarea
+4. NO llames agent-report con status "blocked" sin antes haber pedido ayuda
+
+---
+
+## EJEMPLO CONCRETO agent-report
+
+Si terminaste la tarea con ID 1123, el curl exacto es:
+
+curl -s -X POST http://172.17.0.1:4110/api/tasks/1123/agent-report   -H "Content-Type: application/json"   -d "{\"agent\":\"dev\",\"status\":\"done\",\"result\":\"[resumen]\",\"notify_gabo\":true}"
+
+NUNCA uses /api/agent-report sin el task ID en la URL.
+El task ID te lo da Gabo en la instruccion de la tarea.
